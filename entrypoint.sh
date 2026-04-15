@@ -16,25 +16,21 @@ python manage.py migrate 2>&1 || echo "⚠️  Migration failed, continuing..."
 echo "Step 3: Creating tables for unmigrated apps..."
 python manage.py migrate --run-syncdb 2>&1 || echo "⚠️  Sync failed, continuing..."
 
-echo "Creating superuser if needed..."
-python manage.py shell << EOF
+echo "Step 4: Creating superuser if needed..."
+python manage.py shell -c "
 from django.contrib.auth.models import User
-import sys
 try:
     if not User.objects.filter(username='admin').exists():
         User.objects.create_superuser('admin', 'admin@microfinance.local', 'admin123')
         print('✅ Superuser admin created with password: admin123')
-        sys.stdout.flush()
     else:
         user = User.objects.get(username='admin')
         user.set_password('admin123')
         user.save()
-        print('✅ Superuser admin password updated: admin123')
-        sys.stdout.flush()
+        print('✅ Superuser admin already exists, password updated: admin123')
 except Exception as e:
-    print(f'⚠️  Error creating/updating superuser: {e}')
-    sys.stdout.flush()
-EOF
+    print(f'⚠️  Error with superuser: {e}')
+" 2>&1 || echo "⚠️  Superuser creation attempt finished"
 
 echo "============================================================"
 echo "Initialization complete! Starting gunicorn..."
